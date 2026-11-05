@@ -1,0 +1,12 @@
+{
+  "environment": "staging.example.com",
+  "note": "MẪU (dữ liệu giả). Sao chép thành testdata/fixtures/odoo-sales.json (hoặc testdata/fixtures/<ENV>/odoo-sales.json) rồi ghim các bản ghi nghiệp vụ THẬT của môi trường bạn dùng, CHỈ ĐỂ ĐỌC. File thật bị .gitignore vì chứa host và tên chứng từ thật.",
+  "pinnedOn": "YYYY-MM-DD",
+  "saleOrders": {
+    "so_draft": {
+      "name": "S00001",
+      "purpose": "SO nháp, chưa xác nhận",
+      "expect": { "state": "draft" }
+    }
+  }
+}

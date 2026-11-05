@@ -1,0 +1,70 @@
+{
+  "application": "odoo",
+  "confirmation": "approval",
+  "defaultEnvironment": "STAGING_A",
+  "environments": {
+    "STAGING_A": {
+      "label": "Staging A",
+      "kind": "staging",
+      "urlVar": "ODOO_STAGING_A_URL",
+      "dbVar": "ODOO_STAGING_A_DB",
+      "expectedVersionVar": "ODOO_STAGING_A_VERSION",
+      "roles": {
+        "accountant": {
+          "userVar": "ODOO_STAGING_A_ACCOUNTANT_USER",
+          "passVar": "ODOO_STAGING_A_ACCOUNTANT_PASS"
+        },
+        "noaccess": {
+          "userVar": "ODOO_STAGING_A_NOACCESS_USER",
+          "passVar": "ODOO_STAGING_A_NOACCESS_PASS"
+        }
+      },
+      "policy": {
+        "write": "framework-data",
+        "autoCleanup": true,
+        "failureRetentionHours": 48,
+        "maxRecordsPerRun": 200
+      }
+    },
+    "STAGING_B": {
+      "label": "Staging B",
+      "kind": "staging",
+      "urlVar": "ODOO_STAGING_B_URL",
+      "dbVar": "ODOO_STAGING_B_DB",
+      "expectedVersionVar": "ODOO_STAGING_B_VERSION",
+      "roles": {
+        "accountant": {
+          "userVar": "ODOO_STAGING_B_ACCOUNTANT_USER",
+          "passVar": "ODOO_STAGING_B_ACCOUNTANT_PASS"
+        },
+        "noaccess": {
+          "userVar": "ODOO_STAGING_B_NOACCESS_USER",
+          "passVar": "ODOO_STAGING_B_NOACCESS_PASS"
+        }
+      },
+      "policy": {
+        "write": "framework-data",
+        "autoCleanup": true,
+        "failureRetentionHours": 48,
+        "maxRecordsPerRun": 200
+      }
+    },
+    "UAT": {
+      "label": "UAT",
+      "kind": "uat",
+      "urlVar": "ODOO_UAT_URL",
+      "dbVar": "ODOO_UAT_DB",
+      "expectedVersionVar": "ODOO_UAT_VERSION",
+      "roles": {
+        "accountant": {
+          "userVar": "ODOO_UAT_ACCOUNTANT_USER",
+          "passVar": "ODOO_UAT_ACCOUNTANT_PASS"
+        },
+        "noaccess": {
+          "userVar": "ODOO_UAT_NOACCESS_USER",
+          "passVar": "ODOO_UAT_NOACCESS_PASS"
+        }
+      }
+    }
+  }
+}

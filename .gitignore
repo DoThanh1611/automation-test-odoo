@@ -1,0 +1,59 @@
+# --- Bí mật ---
+.env
+.env.*
+!.env.example
+.auth/
+
+# --- Kết quả chạy: video/ảnh/trace chứa dữ liệu khách hàng thật; trace có thể chứa cookie phiên ---
+reports/
+test-results/
+playwright-report/
+.playwright-mcp/
+
+# --- Gói chia sẻ tạo bởi `npm run package:share` và mọi file nén ---
+share/
+*.zip
+
+# --- Phụ thuộc ---
+node_modules/
+
+# --- Khu vực ngoài framework có thể chứa thông tin đăng nhập hoặc dữ liệu khách hàng ---
+test_results/
+/*.yml
+/*.png
+/Odoo_MISA_Contact_Sync_Playwright_QA.md
+
+# --- Claude Code: cấu hình cục bộ và requirement người dùng dán vào (có thể chứa dữ liệu nghiệp vụ) ---
+.claude/settings.local.json
+requirements/_inbox/
+
+# --- Approval Gate: phiên thực thi cục bộ (không chia sẻ) ---
+.qa-state/
+
+# --- Dữ liệu cục bộ theo máy/môi trường (bản ghi test, bản ghi nghiệp vụ ghim, host staging thật, baseline trường): không đưa lên GitHub ---
+testdata/registry.jsonl
+testdata/registry/
+testdata/fixtures/*.json
+!testdata/fixtures/*.example.json
+testdata/fixtures/*/
+baselines/
+archive/
+
+# --- Dữ liệu nghiệp vụ THẬT đã nhập/chạy trên môi trường khách hàng thật (tên công ty, sản phẩm, quy tắc nghiệp vụ, người duyệt):
+#     không phải credential nhưng không phải dữ liệu mẫu — không đưa lên GitHub công khai. README/TEMPLATE mẫu trong các thư mục
+#     này vẫn được giữ (không khớp các mẫu dưới đây). File gốc KHÔNG bị xoá, chỉ không đưa vào commit. ---
+requirements/*/REQ-*.json
+requirements/*/REQ-*.lock
+requirements/*/REQ-*.source.md
+testcases/*/REQ-*.testcases.json
+automation/*/*.json
+approvals/
+tests/odoo-inventory/
+tests/odoo-sales/
+
+# --- Tài liệu prompt dùng để xây dựng framework (tham khảo cá nhân, không thuộc sản phẩm) ---
+/Promt.md
+docs/prompts/
+
+# --- MCP server học tập/tham khảo, KHÔNG thuộc QA framework (không còn khai báo trong package.json) ---
+/src/
