@@ -68,6 +68,15 @@ git --version
 
 Nếu một lệnh không chạy được, hãy cài công cụ tương ứng trước khi tiếp tục.
 
+**Cách cài đặt nhanh (Windows & macOS):**
+
+| Công cụ | Windows | macOS |
+| --- | --- | --- |
+| **Node.js + npm** | Tải bản **LTS** tại [nodejs.org](https://nodejs.org/en/download), mở file cài đặt và làm theo hướng dẫn. | Tải bản **LTS** tại [nodejs.org](https://nodejs.org/en/download), chọn bộ cài macOS và làm theo hướng dẫn. |
+| **Git** | Tải và cài [Git for Windows](https://git-scm.com/install/windows). | Mở Terminal, chạy `xcode-select --install` và làm theo hướng dẫn; hoặc tham khảo [Git cho macOS](https://git-scm.com/install/mac). |
+
+Sau khi cài, **đóng rồi mở lại Terminal** và chạy lại ba lệnh kiểm tra ở trên. `npm` được cài kèm với Node.js, không cần tải riêng.
+
 ---
 
 ## 3. Cài đặt lần đầu (Windows và macOS)
