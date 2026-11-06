@@ -1,180 +1,315 @@
+<div align="center">
+
 # QA Automation Framework
 
-Framework kiểm thử tự động theo yêu cầu nghiệp vụ (Playwright + TypeScript), điều khiển qua **Claude Code**: dán một requirement bằng tiếng Việt, framework tự sinh test case có truy vết BR/AC, dừng chờ con người **review và APPROVE**, rồi mới tự khám phá giao diện thật, viết automation, chạy theo đúng chính sách môi trường/quyền ghi đã xác nhận, và xuất **QA Report** kèm bằng chứng (video, ảnh, trace).
+### Từ yêu cầu nghiệp vụ đến báo cáo kiểm thử — có con người kiểm soát
 
-## 1. Framework này là gì
+**Claude Code · Playwright · TypeScript · Odoo**
 
-QA cho ứng dụng web thường tốn công ở ba chỗ: viết test case tay từ requirement, giữ an toàn khi test chạm vào môi trường và dữ liệu thật, và duy trì báo cáo/bằng chứng để đối chiếu khi có lỗi. Framework này giải quyết cả ba bằng một vòng lặp có cổng chặn do **code** kiểm soát (Approval Gate, Environment/Write Safety), không dựa vào việc AI "nhớ" phải cẩn thận.
+[![Node.js 20+](https://img.shields.io/badge/Node.js-20%2B-43853D?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![Playwright](https://img.shields.io/badge/Testing-Playwright-2EAD33?logo=playwright&logoColor=white)](https://playwright.dev/)
+[![Windows](https://img.shields.io/badge/Windows-supported-0078D4?logo=windows&logoColor=white)](#3-cài-đặt-lần-đầu-windows-và-macos)
+[![macOS](https://img.shields.io/badge/macOS-supported-333333?logo=apple&logoColor=white)](#3-cài-đặt-lần-đầu-windows-và-macos)
 
-- **Công nghệ chính:** TypeScript, Playwright Test, Playwright MCP (khám phá UI thật), Claude Code (`/qa-requirement`).
-- **Phạm vi hỗ trợ đã xác minh:** lớp lõi (`core/`) không biết gì về ứng dụng cụ thể — mọi thuật ngữ Odoo chỉ xuất hiện trong comment ví dụ, trừ MỘT heuristic nhỏ nhận diện thao tác ghi của Odoo trong `core/policy/mcp.ts`. Hiện có **một** adapter ứng dụng được triển khai và kiểm chứng thật: **Odoo** (module Inventory và Sales đã chạy thật trên Odoo 19 staging; module Purchase mới ở dạng khung). **Chưa có ứng dụng thứ hai nào được kiểm chứng** — kiến trúc cho phép thêm (`npm run new:app`), nhưng đừng coi đó là đã kiểm chứng cho tới khi thật sự chạy qua.
+[**Bắt đầu cài đặt**](#3-cài-đặt-lần-đầu-windows-và-macos) · [**Thử requirement mẫu**](#4-thử-requirement-đầu-tiên-bằng-claude-code) · [**Các lệnh thường dùng**](#6-các-lệnh-quan-trọng)
 
-## 2. Tính năng chính (đã hoạt động, đã kiểm chứng)
-
-| Tính năng | Mô tả |
-|---|---|
-| Phân tích requirement | Nhập requirement 5 mục (Path/Business Requirement/Expected Solution/Business Rules/Acceptance Criteria), lưu nguyên văn BR/AC, khoá bằng hash (`req:import`, `req:verify`) |
-| Sinh test case có truy vết | Mỗi test case liên kết tới đúng BR/AC; `req:check` xác nhận phủ đủ và nguyên văn |
-| Review của con người | Giao diện web Review & Approval (`qa:review`) hoặc terminal: xem test case theo module, phủ BR/AC, lịch sử |
-| **Approval Gate** | APPROVE/REVISE/REJECT có chữ ký HMAC gắn (phiên bản, hash); `npm test`/Playwright MCP bị **code** từ chối khi chưa có phê duyệt hợp lệ — xem mục 11 |
-| Environment & Write Safety | Nhiều môi trường cùng ứng dụng (STAGING_A, STAGING_B, UAT...), xác nhận thực thi + xác nhận quyền ghi tách biệt, production không bao giờ được ghi tự động (ép bằng code) |
-| Test Data Factory & Registry | Dữ liệu test tự sinh, gắn Environment/Run/Requirement/Test Case ID; mọi thao tác ghi chỉ trên dữ liệu có trong registry |
-| Cleanup an toàn | Chỉ hủy/lưu trữ dữ liệu do chính lần chạy tạo ra và có bằng chứng sở hữu; chứng từ đã phát sinh nghiệp vụ không hoàn tác được → `CLEANUP_BLOCKED`, không đụng tới |
-| QA Report | Dashboard theo requirement, cột Steps/Actual/Expected, evidence (video/ảnh/trace), Bug Report, lịch sử; `report:verify` đối chiếu JSON/HTML/tổng kết |
-| Quét bí mật & đóng gói | `security:scan` (dò rò rỉ, không in giá trị), `package:share`/`package:template` (đóng gói không kèm `.env`/`.auth`/evidence thật) |
-
-Chưa có: hỗ trợ ứng dụng thứ hai đã kiểm chứng, UI cấu hình ngoài các trang web tối giản của Approval/Environment Gate, hỗ trợ CI/CD dựng sẵn.
-
-## 3. Bắt đầu nhanh
-
-```bash
-git clone <repo-url> && cd qa-automation-framework
-npm install
-npx playwright install chromium
-cp .env.example .env            # điền sau, xem mục 6
-npm run typecheck
-npm run test:framework          # không kết nối mạng, phải đạt 100%
-```
-
-Mở thư mục bằng VS Code + Claude Code, gõ:
-
-```
-/qa-requirement
-```
-
-rồi dán một requirement (có thể thử ngay bằng `/qa-requirement example/requirements/SAMPLE-REQUIREMENT.md`, dữ liệu giả). Luồng đầy đủ: **Clone → Setup → `/qa-requirement` → Review → APPROVE → tự thực thi → QA Report**. Chi tiết: mục 7. Từng bước có thể dừng hỏi khi thiếu thông tin — framework gom mọi câu hỏi vào một lần, không hỏi vặt.
-
-## 4. Yêu cầu hệ thống
-
-**Bắt buộc:**
-- Node.js 20 trở lên (và npm đi kèm).
-- Trình duyệt Chromium của Playwright (`npx playwright install chromium`) hoặc Chrome có sẵn trên máy.
-- [Claude Code](https://claude.com/claude-code) hoặc VS Code + Claude Code extension (framework điều khiển qua Claude Code; không có chế độ CLI thuần cho `/qa-requirement`).
-- Tài khoản kiểm thử (không phải tài khoản quản trị thật) trên ứng dụng bạn định kiểm thử, nếu muốn chạy automation thật.
-
-**Tùy chọn:**
-- `BROWSER_CHANNEL=chrome` trong `.env` nếu muốn dùng Chrome cài sẵn thay vì Chromium của Playwright.
-- Một môi trường Odoo (staging/UAT) nếu bạn kiểm thử Odoo; framework không đi kèm Odoo.
-
-Playwright MCP server (`@playwright/mcp`, khai báo sẵn trong `.mcp.json`) được Claude Code tự khởi chạy qua `npx` khi cần — không phải cài riêng.
-
-## 5. Cài đặt
-
-```bash
-npm install
-npx playwright install chromium   # hoặc dùng Chrome: BROWSER_CHANNEL=chrome trong .env
-cp .env.example .env
-npm run setup -- --init           # kiểm tra cài đặt, liệt kê TÊN biến .env còn thiếu (không đọc được giá trị)
-```
-
-Điền `.env` một lần (xem mục 6), sau đó:
-
-```bash
-npm run setup       # phải báo "sẵn sàng"
-npm run typecheck
-npm run test:framework
-```
-
-`npm run test:framework` không kết nối ứng dụng nào — đây là cách kiểm tra cài đặt đúng mà không cần `.env` đầy đủ.
-
-## 6. Cấu hình môi trường
-
-Sao chép `.env.example` thành `.env` (không commit `.env`). File này gồm:
-
-- `APP=odoo` — ứng dụng đang kiểm thử, khớp tên thư mục trong `applications/`.
-- Mỗi môi trường (STAGING_A, STAGING_B, UAT...) một bộ biến riêng: `ODOO_STAGING_A_URL`, `..._DB`, `..._VERSION` (phiên bản kỳ vọng, framework đối chiếu trước khi chạy), và một cặp `..._USER`/`..._PASS` cho **từng vai trò** (ví dụ `accountant`, `noaccess`). Danh sách môi trường/vai trò khai báo ở `environments/<app>.json` (chỉ tên biến, không chứa giá trị).
-- `ALLOW_WRITE_TESTS=false` — **giữ nguyên false**. Test ghi dữ liệu chỉ chạy qua `npm run test:write`, sau khi bạn xác nhận chính sách ghi; không set biến này để "mở khoá" trước.
-- `BROWSER_CHANNEL`, `HEADLESS` — tuỳ chọn trình duyệt.
-
-Không bao giờ dùng tài khoản quản trị thật cho vai trò `noaccess` — framework tự phát hiện và chặn test phân quyền thay vì cho kết quả sai. Kiểm tra cấu hình: `npm run qa:env -- check` (không kết nối mạng).
-
-## 7. Requirement đầu tiên
-
-1. Mở Claude Code trong thư mục dự án, gõ `/qa-requirement` và dán requirement theo 5 mục của `example/requirements/TEMPLATE.md` (Path / Business Requirement / Expected Solution / Business Rules / Acceptance Criteria). Muốn thử an toàn trước: `/qa-requirement example/requirements/SAMPLE-REQUIREMENT.md` (toàn dữ liệu giả).
-2. Claude phân tích, tách BR/AC, sinh test case có liên kết BR/AC rõ ràng.
-3. Bạn **review** test case trên giao diện web mà Claude tự mở (hoặc file Markdown offline).
-4. Cần sửa gì, trả lời bằng ngôn ngữ tự nhiên ("TC-EIN-002 thêm bước...") — Claude ghi nhận, sửa, trình lại.
-5. Bạn **APPROVE** ngay trên trang web (gõ cụm xác nhận + bấm Yes trên hộp thoại hệ điều hành của máy bạn). **Claude không tự APPROVE được dưới bất kỳ hình thức nào** — đây là cổng do code kiểm soát, không phải quy ước.
-6. Sau APPROVE, Claude tự kiểm tra môi trường/quyền ghi (mở trang xác nhận nếu chưa có), rồi tự khám phá giao diện thật bằng Playwright MCP, viết automation, chạy mọi test đủ điều kiện.
-7. Bạn xem **QA Report** (Claude tự mở), gồm kết quả PASS/FAIL/BLOCKED, Steps/Actual/Expected, evidence và Bug Report.
-
-Chi tiết từng bước, kể cả khi phiên làm việc bị đóng giữa chừng: `INSTALL.md`.
-
-## 8. Chạy test
-
-| Lệnh | Khi nào dùng | Có kết nối/ghi dữ liệu không |
-|---|---|---|
-| `npm run typecheck` | Luôn chạy trước khi commit | Không |
-| `npm run test:framework` | Kiểm tra chính framework (Approval Gate, cleanup, reporter...) | Không, an toàn tuyệt đối |
-| `npm test -- --requirement=<REQ-ID>` | Chạy test nghiệp vụ **chỉ đọc** của một requirement đã APPROVE | **Có kết nối** ứng dụng thật (chỉ đọc); bị từ chối nếu chưa có phê duyệt + môi trường hợp lệ |
-| `npm run test:write -- --requirement=<REQ-ID> --module=<app>-<module>` | Chạy test cần **tạo/sửa dữ liệu** | **Có ghi dữ liệu** trên ứng dụng thật (chỉ dữ liệu do framework tạo); cần xác nhận chính sách ghi riêng trước |
-| `npm run report:rebuild` | Dựng lại QA Report từ kết quả đã lưu, không chạy lại test | Không |
-| `npm run report:verify` | Đối chiếu JSON/HTML/tổng kết khớp nhau | Không |
-
-**Cảnh báo:** `npm test` và `npm run test:write` kết nối tới ứng dụng thật được cấu hình trong `.env`. Đừng chạy chúng trừ khi bạn hiểu rõ môi trường đang trỏ tới đâu; cổng Approval/Environment sẽ từ chối nếu thiếu điều kiện, nhưng không thay thế việc bạn tự kiểm tra `.env` trỏ đúng môi trường test.
-
-## 9. QA Report
-
-Mở `reports/<MÔI_TRƯỜNG>/qa-report.html` (Claude tự mở sau `qa:finish`). Gồm:
-
-- **Dashboard:** số test case theo trạng thái (PASS/FAIL/BLOCKED/NEEDS CLARIFICATION/NOT RUN), tỉ lệ pass, lọc theo requirement đang xử lý.
-- **Thẻ test case:** Steps – Actual – Expected bằng ngôn ngữ nghiệp vụ, Chi tiết kỹ thuật thu gọn, Evidence (video toàn trình, ảnh chụp khi FAIL, trace) thu gọn mặc định.
-- **Bug Report:** bug mở/đã thay thế (SUPERSEDED khi lần chạy sau PASS hoặc test case đổi), phân loại nghi sản phẩm/nghi hạ tầng.
-- **Ma trận truy vết & Lịch sử:** BR/AC ↔ test case, các lần chạy trước.
-
-Tổng kết dạng chữ (nguồn số liệu chính thức): `reports/<MÔI_TRƯỜNG>/qa-summary.md`.
-
-## 10. Cấu trúc dự án
-
-```
-core/            Lõi không biết gì về ứng dụng cụ thể: Approval Gate, Environment/Write Safety,
-                 Test Data Factory + registry, cleanup engine, QA reporter
-applications/    Adapter theo từng ứng dụng (hiện có: odoo/), chia theo module (inventory/sales/purchase)
-                 — Page Object, API, công thức dữ liệu (recipe)
-requirements/    Requirement đã nhập (BR/AC khoá nguyên văn) + TEMPLATE.md + SAMPLE-REQUIREMENT.md
-testcases/       Test case sinh ra từ requirement, có liên kết BR/AC
-automation/      Metadata quyền thực thi (READ/WRITE) theo test case, tách khỏi nội dung đã duyệt
-approvals/       Hồ sơ phê duyệt có chữ ký (REVIEW.md, lịch sử APPROVE/REVISE/REJECT)
-adapters/        Adapter tự sinh cho module Odoo chưa có code riêng (khám phá chỉ đọc)
-tests/framework/ Test của chính framework (an toàn, không kết nối ứng dụng nào)
-tests/<app>-<module>/  Test nghiệp vụ tự sinh (chỉ xuất hiện sau khi một module được automation)
-scripts/         Mọi lệnh npm (qa:*, req:*, cleanup:*, security:*, setup...)
-.claude/commands/qa-requirement.md   Quy trình mà lệnh /qa-requirement thực thi
-reports/<ENV>/   Kết quả, evidence, QA Report theo từng môi trường (không commit)
-```
-
-## 11. An toàn & Approval Gate
-
-- Mặc định **mọi test chỉ đọc**. `npm test`/Playwright MCP bị **code** từ chối (thoát mã lỗi) khi chưa có phê duyệt hợp lệ khớp hash — không phải quy ước, không có cách hợp lệ nào để Claude tự vượt qua.
-- Claude **không bao giờ tự APPROVE**, tự sửa file phê duyệt, hay tự chọn/xác nhận môi trường thay bạn.
-- **Test case đã APPROVE không bị sửa.** Thay đổi nội dung (steps, expected...) làm phê duyệt tự mất hiệu lực; phải trình và duyệt lại.
-- **Cleanup chỉ động vào dữ liệu do chính lần chạy tạo ra**, có bằng chứng sở hữu (registry + nhãn do framework gắn). Dữ liệu có sẵn, dữ liệu không rõ nguồn gốc, hoặc chứng từ đã phát sinh nghiệp vụ không hoàn tác an toàn (đã đối soát, đã hoàn tất, bị khoá kỳ kế toán...) → `CLEANUP_BLOCKED`, không bao giờ bị đụng tới, không tự xoá chứng từ nghiệp vụ.
-- **Production không bao giờ được ghi tự động**, kể cả khi cấu hình sai (ép bằng code ở nhiều lớp: chính sách hiệu lực, xác nhận, runner, cleanup).
-- Lỗi do chính automation (timeout, sai locator) được phân biệt khỏi lỗi sản phẩm thật; không kết luận bug khi automation dừng trước mốc nghiệp vụ cần kiểm tra.
-
-Chi tiết cơ chế (chữ ký HMAC, các lớp chặn bằng code, giới hạn): `INSTALL.md` mục "Approval Gate (chi tiết)", `FRAMEWORK.md`.
-
-## 12. Xử lý sự cố
-
-| Vấn đề | Cách xử lý |
-|---|---|
-| `npm run setup` báo thiếu biến `.env` | Lệnh chỉ in **tên** biến còn thiếu, không bao giờ in giá trị. Điền vào `.env`, không dán giá trị vào chat/log. |
-| Playwright báo thiếu trình duyệt | `npx playwright install chromium`, hoặc đặt `BROWSER_CHANNEL=chrome` nếu dùng Chrome có sẵn. |
-| Claude Code không nhận `/qa-requirement` | Kiểm tra đang mở đúng thư mục gốc dự án (có `.claude/commands/qa-requirement.md`); khởi động lại Claude Code. |
-| `npm test` thoát ngay, báo chưa có phê duyệt/môi trường | Đúng hành vi của Approval Gate — không phải lỗi. Chạy `/qa-requirement` để đi đúng quy trình thay vì gọi `npm test` trực tiếp. |
-| Đăng nhập lỗi khi chạy automation | Test của vai trò đó → BLOCKED kèm lý do; framework không tự đổi tài khoản/môi trường. Kiểm tra lại URL/tài khoản/phiên bản trong `.env`. |
-| Test case ở trạng thái BLOCKED | Thường là thiếu quyền ghi, thiếu tài khoản theo vai trò, hoặc thiếu dữ liệu ghim (`testdata/fixtures/`). QA Report nêu lý do cụ thể từng test case. |
-| Không thấy video/ảnh/trace trong QA Report | Evidence nằm trong `reports/<ENV>/runs/<RunID>/`; thư mục này không commit lên Git — chỉ tồn tại trên máy đã chạy test. |
-| `report:verify` báo lệch | Không tự sửa số liệu — báo lỗi kèm điều tra, vì đây là dấu hiệu dữ liệu không nhất quán giữa JSON/HTML/tổng kết. |
+</div>
 
 ---
 
-## Tài liệu liên quan
+Framework giúp bạn chuyển **requirement bằng tiếng Việt** thành test case có truy vết, review và phê duyệt trước khi tự động hóa kiểm thử. Sau khi chạy, kết quả được tổng hợp thành QA Report cùng bằng chứng phù hợp.
 
-- `INSTALL.md` — hướng dẫn cài đặt và Approval Gate chi tiết hơn.
-- `FRAMEWORK.md` — tài liệu đầy đủ: nhiều môi trường, Test Data Factory, adapter tự thích ứng cho module Odoo bất kỳ, mốc Lưu vs Xác nhận nghiệp vụ, v.v.
-- `example/requirements/TEMPLATE.md`, `example/testcases/TEMPLATE.md` — mẫu requirement/test case.
+> [!TIP]
+> **Bạn có thể cài đặt và kiểm tra framework mà chưa cần tài khoản Odoo.** Hãy bắt đầu ở [Mục 3](#3-cài-đặt-lần-đầu-windows-và-macos). Chỉ cấu hình kết nối Odoo khi sẵn sàng chạy kiểm thử nghiệp vụ.
+
+### 📚 Mục lục
+
+| Bắt đầu | Sử dụng và tham khảo |
+| --- | --- |
+| [1. Framework làm được gì?](#1-framework-làm-được-gì) | [6. Các lệnh quan trọng](#6-các-lệnh-quan-trọng) |
+| [2. Cần chuẩn bị gì?](#2-cần-chuẩn-bị-những-gì) | [7. Xem QA Report](#7-kết-quả-kiểm-thử-nằm-ở-đâu) |
+| [3. Cài đặt Windows/macOS](#3-cài-đặt-lần-đầu-windows-và-macos) | [8. Cơ chế an toàn](#8-cơ-chế-an-toàn-cần-hiểu) |
+| [4. Requirement đầu tiên](#4-thử-requirement-đầu-tiên-bằng-claude-code) | [9. Cấu trúc dự án](#9-cấu-trúc-thư-mục-đọc-nhanh) |
+| [5. Kết nối Odoo](#5-muốn-chạy-test-trên-odoo-thật-thì-làm-gì) | [10. Lỗi thường gặp](#10-lỗi-thường-gặp) |
+
+---
+
+## 1. Framework làm được gì?
+
+**Quy trình tổng quát:**
+
+`Nhập requirement` → `Sinh test case` → `Review & APPROVE` → `Xác nhận môi trường` → `Chạy automation` → `QA Report`
+
+1. **Nhận yêu cầu:** Bạn cung cấp đường dẫn chức năng, yêu cầu nghiệp vụ, quy tắc và tiêu chí chấp nhận (BR/AC).
+2. **Đề xuất test case:** Claude Code phân tích requirement và tạo các kịch bản có truy vết tới BR/AC.
+3. **Chờ bạn duyệt:** Bạn xem, yêu cầu sửa, rồi tự bấm **APPROVE** trên giao diện review. Claude không tự phê duyệt thay bạn.
+4. **Kiểm tra môi trường:** Framework xác nhận môi trường, quyền truy cập và chính sách ghi trước khi chạy.
+5. **Thực thi và báo cáo:** Playwright chạy các test đủ điều kiện; kết quả hiển thị trong QA Report cùng bằng chứng khi có.
+
+Hiện tại, **Odoo** là ứng dụng đã có adapter và được kiểm chứng thực tế (Inventory và Sales); Purchase mới ở dạng khung. Khả năng mở rộng sang ứng dụng khác có trong kiến trúc nhưng chưa được kiểm chứng thực tế.
+
+## 2. Cần chuẩn bị những gì?
+
+| Thành phần | Mục đích |
+| --- | --- |
+| **Node.js 20+** và npm | Cài đặt và chạy framework |
+| **Git** | Tải mã nguồn từ GitHub |
+| **VS Code + Claude Code** | Nhập requirement và sử dụng lệnh `/qa-requirement` |
+| **Chromium của Playwright** hoặc Chrome | Chạy kiểm thử trên trình duyệt |
+| **Tài khoản ứng dụng thử nghiệm** | Chỉ cần khi bạn muốn chạy test nghiệp vụ thật |
+
+Kiểm tra Node.js, npm và Git trong Terminal:
+
+```bash
+node --version
+npm --version
+git --version
+```
+
+Nếu một lệnh không chạy được, hãy cài công cụ tương ứng trước khi tiếp tục.
+
+---
+
+## 3. Cài đặt lần đầu (Windows và macOS)
+
+> [!IMPORTANT]
+> Hãy chạy lệnh trong **Terminal**, không dán vào cửa sổ chat của Claude. Mỗi bước đều thực hiện trong thư mục dự án sau khi clone.
+
+### Bước 1 — Tải dự án
+
+**🪟 Windows (PowerShell hoặc CMD)**
+
+```powershell
+git clone https://github.com/DoThanh1611/automation-test-odoo.git
+cd automation-test-odoo
+```
+
+> Trước khi chạy, mở Terminal tại **thư mục bạn muốn lưu dự án** (ví dụ Documents). Nếu đã clone rồi, không chạy `git clone` lần nữa; chỉ cần mở Terminal tại thư mục `automation-test-odoo`.
+
+**🍎 macOS (Terminal)**
+
+```bash
+cd ~/Documents
+git clone https://github.com/DoThanh1611/automation-test-odoo.git
+cd automation-test-odoo
+```
+
+**✅ Kiểm tra:** Thư mục hiện tại phải chứa `package.json`.
+
+- Windows: `dir package.json`
+- macOS: `ls package.json`
+
+### Bước 2 — Cài các gói cần thiết
+
+Trên **cả Windows và macOS**:
+
+```bash
+npm install
+npx playwright install chromium
+```
+
+Nếu `npm install` báo `ENOENT ... package.json`, bạn đang ở sai thư mục. Hãy `cd` vào `automation-test-odoo` rồi chạy lại.
+
+### Bước 3 — Tạo file cấu hình `.env`
+
+**Windows CMD:**
+
+```cmd
+copy .env.example .env
+```
+
+**Windows PowerShell:**
+
+```powershell
+Copy-Item .env.example .env
+```
+
+**macOS:**
+
+```bash
+cp .env.example .env
+```
+
+> [!NOTE]
+> **Chưa cần nhập tài khoản Odoo** nếu bạn chỉ muốn kiểm tra framework trên máy mới. File `.env` chứa cấu hình riêng của bạn và không được commit lên GitHub.
+
+### Bước 4 — Kiểm tra cài đặt (không kết nối Odoo)
+
+Chạy lần lượt:
+
+```bash
+npm run typecheck
+npm run test:framework
+npm run setup -- --init
+npm run qa:next
+```
+
+| Lệnh | Kết quả mong đợi |
+| --- | --- |
+| `npm run typecheck` | Không có lỗi TypeScript |
+| `npm run test:framework` | Không có test **FAIL**; một số test có thể **SKIPPED** vì repo công khai không kèm dữ liệu nội bộ |
+| `npm run setup -- --init` | Kiểm tra thiết lập, có thể chỉ ra các biến cấu hình còn thiếu |
+| `npm run qa:next` | Hiển thị bước tiếp theo của quy trình QA |
+
+> [!TIP]
+> 🎉 **Hoàn thành cài đặt!** Nếu không có lỗi ở các bước kiểm tra, bạn đã có thể bắt đầu xem requirement mẫu mà chưa cần chạy test trên Odoo thật.
+
+---
+
+## 4. Thử requirement đầu tiên bằng Claude Code
+
+1. Mở thư mục **`automation-test-odoo`** trong VS Code.
+2. Khởi động Claude Code trong đúng thư mục này.
+3. Gõ lệnh:
+
+   ```text
+   /qa-requirement example/requirements/SAMPLE-REQUIREMENT.md
+   ```
+
+4. Claude Code đọc requirement mẫu, phân tích BR/AC và đề xuất test case.
+5. Xem các test case trên giao diện review hoặc tài liệu được tạo. Nếu chưa đúng, yêu cầu chỉnh sửa bằng ngôn ngữ tự nhiên.
+6. **Chỉ APPROVE khi bạn hiểu test case và đã chuẩn bị môi trường test an toàn.** Sau khi phê duyệt, quy trình có thể chuyển sang kiểm tra môi trường và thực thi.
+
+Muốn tự viết requirement, tham khảo `example/requirements/TEMPLATE.md`, với 5 phần:
+
+- **Path:** Chức năng nằm ở đâu trên ứng dụng?
+- **Business Requirement:** Người dùng cần làm gì?
+- **Expected Solution:** Hệ thống phải đáp ứng thế nào?
+- **Business Rules (BR):** Quy tắc cần tuân thủ?
+- **Acceptance Criteria (AC):** Điều kiện nào chứng minh chức năng đúng?
+
+**Ví dụ ngắn (dữ liệu giả):**
+
+```text
+Path: Kho > Phiếu nhập kho > Chi tiết
+Business Requirement: Không cho phép ghi nhận hai xe khác nhau có cùng số máy.
+Expected Solution: Khi xác nhận hoàn tất phiếu, hệ thống từ chối số máy đã được ghi nhận cho VIN khác.
+BR-01: Một số máy chỉ được gắn với một VIN có hiệu lực.
+AC-01: Nếu số máy chưa tồn tại, xác nhận thành công.
+AC-02: Nếu số máy đã gắn với VIN khác đã hoàn tất, xác nhận bị từ chối và có thông báo rõ ràng.
+```
+
+> [!IMPORTANT]
+> **Lưu ≠ Xác nhận nghiệp vụ.** Nút **Lưu** có thể chỉ ghi lại dữ liệu nháp; bước **Xác nhận/Hoàn tất** mới làm chứng từ có hiệu lực. Requirement và test case phải ghi rõ thời điểm cần kiểm tra.
+
+## 5. Muốn chạy test trên Odoo thật thì làm gì?
+
+Việc này **không bắt buộc** để kiểm tra cài đặt. Khi đã có môi trường staging/UAT riêng:
+
+1. Mở `.env` và điền các URL, tên database, phiên bản dự kiến và tài khoản thử nghiệm theo tên biến trong `.env.example`.
+2. Kiểm tra danh sách môi trường và vai trò trong `environments/odoo.json`.
+3. Giữ `ALLOW_WRITE_TESTS=false` theo mặc định.
+4. Kiểm tra cấu hình:
+
+   ```bash
+   npm run qa:env -- check
+   npm run setup
+   ```
+
+5. Đi theo `/qa-requirement`, review và phê duyệt test case. Framework sẽ yêu cầu xác nhận môi trường/chính sách ghi khi cần.
+
+> [!CAUTION]
+> **Không dùng tài khoản quản trị hoặc dữ liệu thật của khách hàng để thử framework.** Việc APPROVE test case không thay thế việc xác nhận đúng môi trường. Các lệnh test nghiệp vụ có thể truy cập hoặc ghi dữ liệu tùy quyền được cấp.
+
+---
+
+## 6. Các lệnh quan trọng
+
+| Lệnh | Dùng để làm gì? | Có chạm ứng dụng thật? |
+| --- | --- | --- |
+| `npm run typecheck` | Kiểm tra mã TypeScript | Không |
+| `npm run test:framework` | Kiểm tra bản thân framework | Không |
+| `npm run setup -- --init` | Khởi tạo/kiểm tra cài đặt | Không chạy test nghiệp vụ |
+| `npm run qa:next` | Xem bước tiếp theo | Không chạy test nghiệp vụ |
+| `/qa-requirement` (trong Claude Code) | Bắt đầu quy trình requirement → review → automation → report | **Có thể** kết nối/chạy test sau khi được duyệt và cấu hình |
+| `npm test -- --requirement=<REQ-ID>` | Chạy test nghiệp vụ chỉ đọc đã đủ điều kiện | **Có kết nối** |
+| `npm run test:write -- --requirement=<REQ-ID> --module=<app>-<module>` | Chạy test có thao tác ghi được cho phép | **Có ghi**, chịu kiểm soát quyền ghi |
+| `npm run report:rebuild` | Dựng lại báo cáo từ kết quả lưu | Không chạy lại test |
+| `npm run report:verify` | Kiểm tra dữ liệu báo cáo nhất quán | Không chạy lại test |
+| `npm run security:scan` | Quét rủi ro lộ dữ liệu bí mật | Không chạy test nghiệp vụ |
+
+**Người mới chỉ nên chạy các lệnh cài đặt và kiểm tra offline ở Mục 3.** Đừng chạy `npm test` hoặc `test:write` chỉ để xem framework có hoạt động không.
+
+## 7. Kết quả kiểm thử nằm ở đâu?
+
+Sau một lần chạy test nghiệp vụ, framework lưu kết quả theo môi trường:
+
+```text
+reports/<ENV>/qa-report.html      Báo cáo trực quan
+reports/<ENV>/qa-summary.md       Tổng kết kết quả
+reports/<ENV>/runs/<RUN-ID>/      Evidence của lần chạy (khi có)
+```
+
+QA Report có các trạng thái **PASS**, **FAIL**, **BLOCKED**, **NEEDS CLARIFICATION**, **NOT RUN**; liên kết BR/AC, từng test case và bằng chứng như ảnh, video hoặc trace. Thư mục `reports/` không được đưa lên GitHub công khai.
+
+Trên bản clone mới chưa từng chạy test nghiệp vụ, `report:verify` có thể chưa có dữ liệu để kiểm tra. Đó **không phải** lỗi cài đặt.
+
+## 8. Cơ chế an toàn cần hiểu
+
+- **Approval Gate:** Test case phải được con người xem và APPROVE hợp lệ; Claude không tự duyệt thay bạn.
+- **Khóa nội dung đã duyệt:** Sửa các bước hoặc expected result của test case đã duyệt sẽ cần xem và phê duyệt lại.
+- **Environment/Write Safety:** Kiểm soát môi trường và quyền ghi; production không được ghi tự động.
+- **Dữ liệu test có nguồn gốc:** Framework theo dõi dữ liệu do mình tạo bằng registry và bằng chứng sở hữu.
+- **Cleanup có giới hạn:** Không tự hủy chứng từ đã hoàn tất, đã hạch toán hoặc có ràng buộc nghiệp vụ. Những trường hợp đó được đánh dấu `CLEANUP_BLOCKED`.
+- **Phân biệt lỗi test và lỗi sản phẩm:** Test dừng do timeout hoặc sai locator không đủ cơ sở kết luận ứng dụng có bug.
+
+Đọc thêm `FRAMEWORK.md` và `INSTALL.md` nếu bạn cần hiểu chi tiết cơ chế bảo vệ.
+
+## 9. Cấu trúc thư mục (đọc nhanh)
+
+```text
+core/                     Logic chung: approval, môi trường, quyền ghi, dữ liệu test, báo cáo
+applications/             Adapter theo ứng dụng; hiện có Odoo
+example/                  Requirement và test case mẫu để tham khảo
+requirements/             Requirement bạn nhập vào
+testcases/                Test case được tạo từ requirement
+automation/               Metadata liên quan quyền thực thi test case
+approvals/                Hồ sơ và lịch sử phê duyệt (tạo khi sử dụng)
+tests/framework/          Unit/integration tests cho framework, không chạm Odoo
+tests/<app>-<module>/      Automation nghiệp vụ khi được tạo
+scripts/                  Các lệnh npm
+.claude/commands/          Lệnh Claude Code, bao gồm /qa-requirement
+environments/             Khai báo các môi trường/role và tên biến cấu hình
+reports/                  QA Report, kết quả và evidence tạo ở máy local
+```
+
+---
+
+## 10. Lỗi thường gặp
+
+**`npm ERR! ENOENT ... package.json`**  
+Terminal không đứng ở thư mục gốc dự án. Chạy `cd automation-test-odoo`, rồi kiểm tra `dir package.json` (Windows) hoặc `ls package.json` (macOS).
+
+**`npm` hoặc `node` không được nhận diện**  
+Kiểm tra đã cài Node.js 20+ và mở lại Terminal.
+
+**Thiếu trình duyệt Playwright**  
+Chạy `npx playwright install chromium`. Nếu dùng Chrome sẵn có, tham khảo biến `BROWSER_CHANNEL=chrome` trong `.env`.
+
+**Không tìm thấy `/qa-requirement` trong Claude Code**  
+Mở đúng thư mục dự án có `.claude/commands/qa-requirement.md`, sau đó khởi động lại Claude Code.
+
+**`setup` báo thiếu biến trong `.env`**  
+Điền các biến cần thiết nếu muốn kết nối môi trường thử nghiệm. Không chia sẻ mật khẩu trong chat hoặc commit lên Git.
+
+**`npm test` bị chặn vì chưa APPROVE/chưa chọn môi trường**  
+Đây là hành vi bảo vệ đúng. Hãy đi qua `/qa-requirement` và các bước xác nhận, không tìm cách bỏ qua Approval Gate.
+
+**Có test `SKIPPED` ở `test:framework`**  
+Một số bài test cần fixture nghiệp vụ không được phát hành trong repo public. Quan trọng là xem lý do skip và bảo đảm không có FAIL.
+
+**Không có QA Report sau khi vừa clone**  
+Đúng thiết kế: báo cáo chỉ xuất hiện sau khi bạn thực sự chạy test nghiệp vụ.
+
+## 11. Đọc thêm
+
+- [`INSTALL.md`](INSTALL.md): Cấu hình và hướng dẫn đầy đủ, đặc biệt là Approval Gate.
+- [`FRAMEWORK.md`](FRAMEWORK.md): Kiến trúc, giới hạn và quy tắc an toàn.
+- [`example/requirements/TEMPLATE.md`](example/requirements/TEMPLATE.md): Mẫu requirement.
+- [`example/requirements/SAMPLE-REQUIREMENT.md`](example/requirements/SAMPLE-REQUIREMENT.md): Ví dụ requirement giả.
+
+---
 
 ## License
 
-Chưa xác định (quyết định còn mở — xem `LICENSE` nếu được thêm sau).
+Chưa xác định. Mã nguồn công khai không tự động đồng nghĩa với việc đã được cấp phép sử dụng, sửa đổi hoặc phân phối. Kiểm tra quyền sở hữu trước khi bổ sung LICENSE.
